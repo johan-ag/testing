@@ -1,0 +1,8 @@
+version: 1
+packages:
+  - path: "internal/platform/database"
+    name: "database"
+    engine: "mysql"
+    schema: "migrations/migrations.sql"
+    queries: "queries.sql"
+  
