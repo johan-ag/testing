@@ -10,7 +10,6 @@ import (
 	"github.com/johan-ag/testing/internal/users"
 	"github.com/mercadolibre/fury_go-core/pkg/log"
 	"github.com/mercadolibre/fury_go-platform/pkg/fury"
-	"github.com/mercadolibre/fury_go-toolkit-kvs/pkg/kvs"
 )
 
 func main() {
@@ -31,17 +30,14 @@ func run() error {
 
 	queries := database.New(db)
 
-	qkvs, err := kvs.NewQueryableClient("container")
-	if err != nil {
-		return err
-	}
-	usersRepository := users.NewRepository(queries)
-	usersService := users.NewService(usersRepository, qkvs)
+	usersRepository := users.NewRepository(queries, db)
+	usersService := users.NewService(usersRepository)
 
-	_usersHandler := usersHandler.NewHandler(usersService)
+	usersHandler := usersHandler.NewHandler(usersService)
 
-	app.Post("/api/users", _usersHandler.Save)
-	app.Get("/api/users/{id}", _usersHandler.Find)
+	app.Post("/api/users", usersHandler.Save)
+	app.Get("/api/users/{id}", usersHandler.Find)
+	app.Get("/api/users/", usersHandler.FindByNameAndAge)
 
 	return app.Run()
 }

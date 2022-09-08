@@ -2,38 +2,35 @@ package users
 
 import (
 	"context"
+	"database/sql"
 
 	_ "github.com/golang/mock/mockgen/model"
 	"github.com/johan-ag/testing/internal/platform/database"
 )
 
 //---go:generate mockgen -destination=mocks/repository.go -package=mocks github.com/johan-ag/testing/internal/users Repository
-type Repository interface {
-	Save(ctx context.Context, name string, age uint, random string) (uint, error)
-	Find(ctx context.Context, id uint) (User, error)
+type repository struct {
+	queries  *database.Queries
+	database *sql.DB
 }
 
-type User struct {
-	ID   uint   `json:"id"`
-	Name string `json:"name"`
-	Age  uint   `json:"age"`
-}
-
-func NewRepository(queries *database.Queries) *repository {
+func NewRepository(queries *database.Queries, database *sql.DB) *repository {
 	return &repository{
-		queries,
+		queries:  queries,
+		database: database,
 	}
 }
 
-type repository struct {
-	queries *database.Queries
+type Repository interface {
+	Save(ctx context.Context, name string, age uint) (uint, error)
+	Find(ctx context.Context, id uint) (User, error)
+	FindByNameAndAge(ctx context.Context, name string, age int32) ([]User, error)
 }
 
-func (r *repository) Save(ctx context.Context, name string, age uint, random string) (uint, error) {
+func (r *repository) Save(ctx context.Context, name string, age uint) (uint, error) {
 	result, err := r.queries.SaveUser(ctx, database.SaveUserParams{
-		Name:   name,
-		Age:    int32(age),
-		Random: random,
+		Name: name,
+		Age:  int32(age),
 	})
 	if err != nil {
 		return 0, ErrorSavingToDB
@@ -60,4 +57,27 @@ func (r *repository) Find(ctx context.Context, id uint) (User, error) {
 	}
 
 	return user, nil
+}
+
+func (r *repository) FindByNameAndAge(ctx context.Context, name string, age int32) ([]User, error) {
+	params := database.FindUserByParamsParams{
+		Name: name,
+		Age:  age,
+	}
+
+	dbUsers, err := r.queries.FindUserByParams(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	users := []User{}
+	for _, u := range dbUsers {
+		user := User{
+			Name: u.Name,
+			Age:  uint(u.Age),
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }

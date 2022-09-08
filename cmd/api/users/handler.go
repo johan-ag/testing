@@ -2,6 +2,7 @@ package users
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/johan-ag/testing/internal/users"
 	"github.com/mercadolibre/fury_go-core/pkg/web"
@@ -23,13 +24,11 @@ func (h *handler) Save(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return web.NewError(http.StatusBadGateway, "error to read body")
-		// return web.EncodeJSON(w, err, http.StatusBadRequest)
 	}
 
 	id, err := h.service.Save(r.Context(), user.Name, user.Age)
 	if err != nil {
-		err = web.NewError(http.StatusInternalServerError, "error to save user")
-		return web.EncodeJSON(w, err, http.StatusInternalServerError)
+		return web.NewError(http.StatusInternalServerError, "error to save user")
 	}
 
 	return web.EncodeJSON(w, id, http.StatusCreated)
@@ -42,6 +41,23 @@ func (h *handler) Find(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	user, err := h.service.Find(r.Context(), id)
+	if err != nil {
+		return web.NewError(http.StatusInternalServerError, err.Error())
+	}
+
+	return web.EncodeJSON(w, user, http.StatusCreated)
+}
+
+func (h *handler) FindByNameAndAge(w http.ResponseWriter, r *http.Request) error {
+	name := r.URL.Query().Get("name")
+	ageParam := r.URL.Query().Get("age")
+
+	age, err := strconv.Atoi(ageParam)
+	if err != nil {
+		return web.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	user, err := h.service.FindByParams(r.Context(), name, int32(age))
 	if err != nil {
 		return web.NewError(http.StatusInternalServerError, err.Error())
 	}

@@ -3,6 +3,6 @@ packages:
   - path: "internal/platform/database"
     name: "database"
     engine: "mysql"
-    schema: "migrations/migrations.sql"
-    queries: "queries.sql"
+    schema: "/internal/platform/database/schema/init_schema.sql"
+    queries: "/internal/platform/database/queries/"
   
