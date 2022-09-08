@@ -1,6 +1,6 @@
 package users
 
-/*import (
+import (
 	"context"
 	"testing"
 
@@ -22,7 +22,7 @@ func TestServiceSave(t *testing.T) {
 			executeBeforeTest: func(ctx context.Context, r *MockRepository, expectedName string, expectedAge uint) {
 				r.
 					EXPECT().
-					Save(gomock.Eq(ctx), gomock.Eq(expectedName), gomock.Eq(expectedAge), gomock.Any()).
+					Save(gomock.Eq(ctx), gomock.Eq(expectedName), gomock.Eq(expectedAge)).
 					Return(uint(1), nil)
 			},
 			expectedContext: context.Background(),
@@ -36,7 +36,7 @@ func TestServiceSave(t *testing.T) {
 			executeBeforeTest: func(ctx context.Context, r *MockRepository, expectedName string, expectedAge uint) {
 				r.
 					EXPECT().
-					Save(gomock.Eq(ctx), gomock.Eq(expectedName), gomock.Eq(expectedAge), gomock.Any()).
+					Save(gomock.Eq(ctx), gomock.Eq(expectedName), gomock.Eq(expectedAge)).
 					Return(uint(0), ErrorSavingToDB)
 			},
 			expectedContext: context.Background(),
@@ -68,4 +68,4 @@ func TestServiceSave(t *testing.T) {
 		})
 	}
 
-}*/
+}

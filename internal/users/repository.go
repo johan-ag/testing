@@ -8,7 +8,7 @@ import (
 	"github.com/johan-ag/testing/internal/platform/database"
 )
 
-//---go:generate mockgen -destination=mocks/repository.go -package=mocks github.com/johan-ag/testing/internal/users Repository
+//go:generate mockgen -destination=mocks/repository.go -package=mocks github.com/johan-ag/testing/internal/users Repository
 type repository struct {
 	queries  *database.Queries
 	database *sql.DB

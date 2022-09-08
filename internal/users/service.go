@@ -1,5 +1,4 @@
-//go:generate mockgen -destination=./mocks.go -package=users github.com/johan-ag/testing/internal/users . Service,Repository
-//go:generate mockgen -destination=../../internal/platform/kvs/mock.go -package=kvs github.com/mercadolibre/fury_go-toolkit-kvs/pkg/kvs QueryableClient
+//go:generate mockgen -destination=mocks.go -package=users github.com/johan-ag/testing/internal/users Service,Repository
 package users
 
 import (
