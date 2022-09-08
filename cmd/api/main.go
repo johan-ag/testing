@@ -23,7 +23,7 @@ func run() error {
 		return err
 	}
 
-	db, err := sql.Open("mysql", "root:root@/testdb")
+	db, err := sql.Open("mysql", "root:T1m1t1*root@/testdb")
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func run() error {
 
 	app.Post("/api/users", usersHandler.Save)
 	app.Get("/api/users/{id}", usersHandler.Find)
-	app.Get("/api/users/", usersHandler.FindByNameAndAge)
+	app.Get("/api/users", usersHandler.FindByNameAndAge)
 
 	return app.Run()
 }

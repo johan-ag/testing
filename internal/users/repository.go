@@ -73,6 +73,7 @@ func (r *repository) FindByNameAndAge(ctx context.Context, name string, age int3
 	users := []User{}
 	for _, u := range dbUsers {
 		user := User{
+			ID:   uint(u.ID),
 			Name: u.Name,
 			Age:  uint(u.Age),
 		}
