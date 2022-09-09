@@ -23,12 +23,12 @@ func (h *handler) Save(w http.ResponseWriter, r *http.Request) error {
 	err := web.DecodeJSON(r, &userReq)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return web.NewError(http.StatusBadGateway, "error to read body")
+		return web.NewError(http.StatusBadGateway, err.Error())
 	}
 
 	user, err := h.service.Save(r.Context(), userReq.Name, userReq.Age)
 	if err != nil {
-		return web.NewError(http.StatusInternalServerError, "error to save user")
+		return web.NewError(http.StatusInternalServerError, err.Error())
 	}
 
 	return web.EncodeJSON(w, user, http.StatusCreated)
@@ -40,12 +40,17 @@ func (h *handler) Find(w http.ResponseWriter, r *http.Request) error {
 		return web.NewError(http.StatusBadRequest, err.Error())
 	}
 
+	// Simulates a validation
+	if id == 7 {
+		return web.NewError(http.StatusNotFound, "user not found")
+	}
+
 	user, err := h.service.Find(r.Context(), id)
 	if err != nil {
 		return web.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	return web.EncodeJSON(w, user, http.StatusCreated)
+	return web.EncodeJSON(w, user, http.StatusOK)
 }
 
 func (h *handler) FindByNameAndAge(w http.ResponseWriter, r *http.Request) error {

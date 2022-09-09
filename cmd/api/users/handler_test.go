@@ -3,12 +3,14 @@ package users
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/johan-ag/testing/internal/users"
+	"github.com/mercadolibre/fury_go-core/pkg/web"
 	"github.com/mercadolibre/fury_go-platform/pkg/dbtest"
 	"github.com/stretchr/testify/require"
 )
@@ -63,6 +65,194 @@ func TestHandlerSave(t *testing.T) {
 			handler.Save(r, w)
 			// then
 			require.Equal(t, tt.expectedCode, r.Code)
+		})
+	}
+}
+
+// Unit test of a failed POST operation.
+// This example receives data through the body of a request. In this case a User with a name and age.
+// We use the field excecuteBeforeTest to perform the expected behavior of the mocked service.
+// In the first case our test wont get to use it because it fails before excecuting the service function, so we leave the field as nil.
+// The body field is used to store the json request as a string and it will be passed down to the NewRequest method as the body of the request.
+// The rest of the fields are the necessary data to perform the service call or to validate the results (e.g. expectedCode).
+func TestHandlerSaveFail(t *testing.T) {
+	tests := []struct {
+		name               string
+		excecuteBeforeTest func(ctx context.Context, s *users.MockService, u users.User)
+		expectedContext    context.Context
+		user               users.User
+		body               string
+		expectedCode       int
+	}{
+		{
+			name:               "fail to decode",
+			excecuteBeforeTest: nil,
+			expectedContext:    context.Background(),
+			user: users.User{
+				ID:   1,
+				Name: "Jane",
+				Age:  30,
+			},
+			body:         `{"name":"Jane", "age": 30,}`,
+			expectedCode: http.StatusBadGateway,
+		},
+		{
+			name: "service fail",
+			excecuteBeforeTest: func(ctx context.Context, s *users.MockService, u users.User) {
+				s.EXPECT().Save(ctx, gomock.Eq(u.Name), gomock.Eq(u.Age)).Return(u, errors.New("service fail"))
+			},
+			expectedContext: context.Background(),
+			user: users.User{
+				Name: "Jane",
+				Age:  30,
+			},
+			body:         `{"name":"Jane", "age": 30}`,
+			expectedCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given
+			db, teardown := dbtest.New(t, "root", "root")
+			defer teardown()
+			db.Load()
+
+			w := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(tt.body))
+			r := httptest.NewRecorder()
+			service := users.NewMockService(gomock.NewController(t))
+			handler := NewHandler(service)
+
+			if tt.excecuteBeforeTest != nil {
+				tt.excecuteBeforeTest(tt.expectedContext, service, tt.user)
+			}
+			// when
+			err := handler.Save(r, w)
+			// then
+			var wErr *web.Error
+			b := errors.As(err, &wErr)
+			require.True(t, b)
+			require.Equal(t, tt.expectedCode, wErr.Status)
+		})
+	}
+}
+
+func TestHandlerFind(t *testing.T) {
+	tests := []struct {
+		name               string
+		excecuteBeforeTest func(ctx context.Context, s *users.MockService, u users.User)
+		expectedContext    context.Context
+		user               users.User
+		userID             string
+		expectedCode       int
+	}{
+		{
+			name: "find user successfully",
+			excecuteBeforeTest: func(ctx context.Context, s *users.MockService, u users.User) {
+				s.EXPECT().Find(ctx, uint(u.ID)).Return(u, nil)
+			},
+			expectedContext: context.Background(),
+			user: users.User{
+				ID:   1,
+				Name: "Jane",
+				Age:  30,
+			},
+			userID:       "1",
+			expectedCode: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given
+			db, teardown := dbtest.New(t, "root", "root")
+			defer teardown()
+			db.Load()
+
+			tt.expectedContext = web.WithParams(tt.expectedContext, web.URIParams{"id": tt.userID})
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodGet, "/", nil)
+			r = r.WithContext(tt.expectedContext)
+
+			service := users.NewMockService(gomock.NewController(t))
+			handler := NewHandler(service)
+
+			if tt.excecuteBeforeTest != nil {
+				tt.excecuteBeforeTest(tt.expectedContext, service, tt.user)
+			}
+			// when
+			handler.Find(w, r)
+			// then
+			require.Equal(t, tt.expectedCode, w.Code)
+		})
+	}
+}
+
+func TestHandlerFindFail(t *testing.T) {
+	tests := []struct {
+		name               string
+		excecuteBeforeTest func(ctx context.Context, s *users.MockService, u users.User)
+		expectedContext    context.Context
+		user               users.User
+		userID             string
+		expectedCode       int
+	}{
+		{
+			name:               "empty id",
+			excecuteBeforeTest: nil,
+			expectedContext:    context.Background(),
+			user:               users.User{},
+			expectedCode:       http.StatusBadRequest,
+		},
+		{
+			name:               "user not found",
+			excecuteBeforeTest: nil,
+			expectedContext:    context.Background(),
+			user:               users.User{},
+			userID:             "7",
+			expectedCode:       http.StatusNotFound,
+		},
+		{
+			name: "service fail",
+			excecuteBeforeTest: func(ctx context.Context, s *users.MockService, u users.User) {
+				s.EXPECT().Find(ctx, uint(u.ID)).Return(u, errors.New("service fail"))
+			},
+			expectedContext: context.Background(),
+			user: users.User{
+				ID:   1,
+				Name: "Jane",
+				Age:  30,
+			},
+			userID:       "1",
+			expectedCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given
+			db, teardown := dbtest.New(t, "root", "root")
+			defer teardown()
+			db.Load()
+
+			tt.expectedContext = web.WithParams(tt.expectedContext, web.URIParams{"id": tt.userID})
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodGet, "/", nil)
+			r = r.WithContext(tt.expectedContext)
+
+			service := users.NewMockService(gomock.NewController(t))
+			handler := NewHandler(service)
+
+			if tt.excecuteBeforeTest != nil {
+				tt.excecuteBeforeTest(tt.expectedContext, service, tt.user)
+			}
+			// when
+			err := handler.Find(w, r)
+			// then
+			var wErr *web.Error
+			b := errors.As(err, &wErr)
+			require.True(t, b)
+			require.Equal(t, tt.expectedCode, wErr.Status)
 		})
 	}
 }
