@@ -6,7 +6,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	usersHandler "github.com/johan-ag/testing/cmd/api/users"
-	"github.com/johan-ag/testing/internal/platform/database"
 	"github.com/johan-ag/testing/internal/users"
 	"github.com/mercadolibre/fury_go-core/pkg/log"
 	"github.com/mercadolibre/fury_go-platform/pkg/fury"
@@ -28,9 +27,7 @@ func run() error {
 		return err
 	}
 
-	queries := database.New(db)
-
-	usersRepository := users.NewRepository(queries, db)
+	usersRepository := users.NewRepository(db)
 	usersService := users.NewService(usersRepository)
 
 	usersHandler := usersHandler.NewHandler(usersService)

@@ -19,19 +19,19 @@ func NewHandler(service users.Service) *handler {
 }
 
 func (h *handler) Save(w http.ResponseWriter, r *http.Request) error {
-	var user users.User
-	err := web.DecodeJSON(r, &user)
+	var userReq users.User
+	err := web.DecodeJSON(r, &userReq)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return web.NewError(http.StatusBadGateway, "error to read body")
 	}
 
-	id, err := h.service.Save(r.Context(), user.Name, user.Age)
+	user, err := h.service.Save(r.Context(), userReq.Name, userReq.Age)
 	if err != nil {
 		return web.NewError(http.StatusInternalServerError, "error to save user")
 	}
 
-	return web.EncodeJSON(w, id, http.StatusCreated)
+	return web.EncodeJSON(w, user, http.StatusCreated)
 }
 
 func (h *handler) Find(w http.ResponseWriter, r *http.Request) error {

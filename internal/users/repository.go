@@ -10,14 +10,14 @@ import (
 
 //go:generate mockgen -destination=mocks/repository.go -package=mocks github.com/johan-ag/testing/internal/users Repository
 type repository struct {
-	queries  *database.Queries
+	*database.Queries
 	database *sql.DB
 }
 
-func NewRepository(queries *database.Queries, database *sql.DB) *repository {
+func NewRepository(dBase *sql.DB) *repository {
 	return &repository{
-		queries:  queries,
-		database: database,
+		Queries:  database.New(dBase),
+		database: dBase,
 	}
 }
 
@@ -28,7 +28,7 @@ type Repository interface {
 }
 
 func (r *repository) Save(ctx context.Context, name string, age uint) (uint, error) {
-	result, err := r.queries.SaveUser(ctx, database.SaveUserParams{
+	result, err := r.Queries.SaveUser(ctx, database.SaveUserParams{
 		Name: name,
 		Age:  int32(age),
 	})
@@ -45,7 +45,7 @@ func (r *repository) Save(ctx context.Context, name string, age uint) (uint, err
 }
 
 func (r *repository) Find(ctx context.Context, id uint) (User, error) {
-	u, err := r.queries.FindUser(ctx, int32(id))
+	u, err := r.Queries.FindUser(ctx, int32(id))
 	if err != nil {
 		return User{}, err
 	}
@@ -65,7 +65,7 @@ func (r *repository) FindByNameAndAge(ctx context.Context, name string, age int3
 		Age:  age,
 	}
 
-	dbUsers, err := r.queries.FindUserByParams(ctx, params)
+	dbUsers, err := r.Queries.FindUserByParams(ctx, params)
 	if err != nil {
 		return nil, err
 	}

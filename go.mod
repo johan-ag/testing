@@ -22,6 +22,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0 // indirect
 	github.com/gofrs/uuid v4.2.0+incompatible // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
+	github.com/jmoiron/sqlx v1.3.4 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/newrelic/go-agent/v3 v3.17.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
