@@ -15,6 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// grabQueryParam grabs the query param from a request so it can be used in the test.
+func grabQueryParam(key, value string, r *http.Request) {
+	param := r.URL.Query()
+	param.Set(key, value)
+	r.URL.RawQuery = param.Encode()
+}
+
 // Unit test of successful POST operation.
 // This example receives data through the body of a request. In this case a User with a name and age.
 // We use the field excecuteBeforeTest to perform the expected behavior of the mocked service.
@@ -49,7 +56,7 @@ func TestHandlerSave(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// given
-			db, teardown := dbtest.New(t, "root", "root")
+			db, teardown := dbtest.New(t, "root", "T1m1t1*root")
 			defer teardown()
 			db.Load()
 
@@ -114,7 +121,7 @@ func TestHandlerSaveFail(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// given
-			db, teardown := dbtest.New(t, "root", "root")
+			db, teardown := dbtest.New(t, "root", "T1m1t1*root")
 			defer teardown()
 			db.Load()
 
@@ -165,7 +172,7 @@ func TestHandlerFind(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// given
-			db, teardown := dbtest.New(t, "root", "root")
+			db, teardown := dbtest.New(t, "root", "T1m1t1*root")
 			defer teardown()
 			db.Load()
 
@@ -231,7 +238,7 @@ func TestHandlerFindFail(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// given
-			db, teardown := dbtest.New(t, "root", "root")
+			db, teardown := dbtest.New(t, "root", "T1m1t1*root")
 			defer teardown()
 			db.Load()
 
@@ -248,6 +255,127 @@ func TestHandlerFindFail(t *testing.T) {
 			}
 			// when
 			err := handler.Find(w, r)
+			// then
+			var wErr *web.Error
+			b := errors.As(err, &wErr)
+			require.True(t, b)
+			require.Equal(t, tt.expectedCode, wErr.Status)
+		})
+	}
+}
+
+func TestHandlerFindByNameAndAge(t *testing.T) {
+	tests := []struct {
+		name               string
+		excecuteBeforeTest func(ctx context.Context, s *users.MockService, u users.User)
+		expectedContext    context.Context
+		user               users.User
+		ageParam           string
+		expectedCode       int
+	}{
+		{
+			name: "find user successfully",
+			excecuteBeforeTest: func(ctx context.Context, s *users.MockService, u users.User) {
+				s.EXPECT().FindByParams(ctx, gomock.Eq(u.Name), gomock.Eq(int32(u.Age))).Return([]users.User{u}, nil)
+			},
+			expectedContext: context.Background(),
+			user: users.User{
+				ID:   1,
+				Name: "Jane",
+				Age:  30,
+			},
+			ageParam:     "30",
+			expectedCode: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given
+			db, teardown := dbtest.New(t, "root", "T1m1t1*root")
+			defer teardown()
+			db.Load()
+
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodGet, "/", nil)
+
+			// Grab query params from the request
+			grabQueryParam("name", tt.user.Name, r)
+			grabQueryParam("age", tt.ageParam, r)
+
+			service := users.NewMockService(gomock.NewController(t))
+			handler := NewHandler(service)
+
+			if tt.excecuteBeforeTest != nil {
+				tt.excecuteBeforeTest(tt.expectedContext, service, tt.user)
+			}
+			// when
+			handler.FindByNameAndAge(w, r)
+			// then
+			require.Equal(t, tt.expectedCode, w.Code)
+		})
+	}
+}
+
+func TestHandlerFindByNameAndAgeFail(t *testing.T) {
+	tests := []struct {
+		name               string
+		excecuteBeforeTest func(ctx context.Context, s *users.MockService, u users.User)
+		expectedContext    context.Context
+		user               users.User
+		ageParam           string
+		expectedCode       int
+	}{
+		{
+			name:               "invalid age param",
+			excecuteBeforeTest: nil,
+			expectedContext:    context.Background(),
+			user: users.User{
+				ID:   1,
+				Name: "Jane",
+				Age:  30,
+			},
+			ageParam:     "AA",
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name: "service fail",
+			excecuteBeforeTest: func(ctx context.Context, s *users.MockService, u users.User) {
+				s.EXPECT().FindByParams(ctx, u.Name, int32(u.Age)).Return([]users.User{u}, errors.New("service fail"))
+			},
+			expectedContext: context.Background(),
+			user: users.User{
+				ID:   1,
+				Name: "Jane",
+				Age:  30,
+			},
+			ageParam:     "30",
+			expectedCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given
+			db, teardown := dbtest.New(t, "root", "T1m1t1*root")
+			defer teardown()
+			db.Load()
+
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodGet, "/", nil)
+
+			// Grab query params from the request
+			grabQueryParam("name", tt.user.Name, r)
+			grabQueryParam("age", tt.ageParam, r)
+
+			service := users.NewMockService(gomock.NewController(t))
+			handler := NewHandler(service)
+
+			if tt.excecuteBeforeTest != nil {
+				tt.excecuteBeforeTest(tt.expectedContext, service, tt.user)
+			}
+			// when
+			err := handler.FindByNameAndAge(w, r)
 			// then
 			var wErr *web.Error
 			b := errors.As(err, &wErr)

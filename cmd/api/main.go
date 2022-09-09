@@ -22,7 +22,7 @@ func run() error {
 		return err
 	}
 
-	db, err := sql.Open("mysql", "root:root@/testdb")
+	db, err := sql.Open("mysql", "root:T1m1t1*root@/testdb")
 	if err != nil {
 		return err
 	}

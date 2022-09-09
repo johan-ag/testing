@@ -62,10 +62,10 @@ func (h *handler) FindByNameAndAge(w http.ResponseWriter, r *http.Request) error
 		return web.NewError(http.StatusBadRequest, err.Error())
 	}
 
-	user, err := h.service.FindByParams(r.Context(), name, int32(age))
+	users, err := h.service.FindByParams(r.Context(), name, int32(age))
 	if err != nil {
 		return web.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	return web.EncodeJSON(w, user, http.StatusCreated)
+	return web.EncodeJSON(w, users, http.StatusOK)
 }
